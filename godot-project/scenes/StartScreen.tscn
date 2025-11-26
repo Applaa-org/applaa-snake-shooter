@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://g2r6s1t2u3vwx"]
+[gd_scene load_steps=3 format=3 uid="uid://start_updated"]
 
 [ext_resource type="Script" path="res://scripts/StartScreen.gd" id="1"]
 
@@ -57,7 +57,7 @@ layout_mode = 2
 theme = SubResource("Theme_abc")
 text = "WASD: Move
 SPACE/Click: Shoot
-Destroy the worm!"
+Destroy 10 snakes to win!"
 horizontal_alignment = 1
 autowrap_mode = 3
 

@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://h3s7t2u3v4wxy"]
+[gd_scene load_steps=3 format=3 uid="uid://victory_updated"]
 
 [ext_resource type="Script" path="res://scripts/VictoryScreen.gd" id="1"]
 
@@ -62,6 +62,12 @@ horizontal_alignment = 1
 layout_mode = 2
 theme = SubResource("Theme_abc")
 text = "HIGH SCORE: 0000"
+horizontal_alignment = 1
+
+[node name="SnakesLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme = SubResource("Theme_abc")
+text = "SNAKES DESTROYED: 0"
 horizontal_alignment = 1
 
 [node name="RestartButton" type="Button" parent="VBoxContainer"]

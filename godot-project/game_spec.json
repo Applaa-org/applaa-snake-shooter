@@ -3,7 +3,7 @@
     "name": "Snake Shooter",
     "type": "2D",
     "genre": "arcade shooter",
-    "description": "A Centipede-inspired arcade game where you shoot a segmented worm enemy"
+    "description": "Enhanced arcade game where multiple snakes fall from the top and you shoot them to destroy them"
   },
   "settings": {
     "window": {"width": 800, "height": 600},
@@ -18,11 +18,11 @@
   "entities": {
     "enemies": [
       {
-        "name": "Worm",
-        "health": 8,
-        "speed": 100,
+        "name": "Snake",
+        "health": 1,
+        "speed": 80,
         "damage": 1,
-        "behavior": "segmented_movement"
+        "behavior": "falling_with_horizontal_movement"
       }
     ],
     "projectiles": [
@@ -41,11 +41,59 @@
     }
   ],
   "logic": {
-    "winCondition": "destroy_worm",
-    "loseCondition": "worm_reaches_bottom_or_hits_player",
+    "winCondition": "destroy_10_snakes",
+    "loseCondition": "time_limit",
+   
+
+<applaa-write path="godot-project/game_spec.json" description="Updated game specification">
+{
+  "game": {
+    "name": "Snake Shooter",
+    "type": "2D",
+    "genre": "arcade shooter",
+    "description": "Enhanced arcade game where multiple snakes fall from the top and you shoot them to destroy them"
+  },
+  "settings": {
+    "window": {"width": 800, "height": 600},
+    "physics": {"gravity": 0}
+  },
+  "player": {
+    "name": "Player",
+    "health": 1,
+    "speed": 300,
+    "abilities": ["move", "shoot"]
+  },
+  "entities": {
+    "enemies": [
+      {
+        "name": "Snake",
+        "health": 1,
+        "speed": 80,
+        "damage": 1,
+        "behavior": "falling_with_horizontal_movement"
+      }
+    ],
+    "projectiles": [
+      {
+        "name": "Bullet",
+        "speed": 500,
+        "damage": 1
+      }
+    ]
+  },
+  "levels": [
+    {
+      "name": "Main Arena",
+      "background": "dark",
+      "obstacles": []
+    }
+  ],
+  "logic": {
+    "winCondition": "destroy_10_snakes",
+    "loseCondition": "time_limit",
     "scoring": {
-      "pointsPerSegment": 10,
-      "bonusForWorm": 100
+      "pointsPerSnake": 50,
+      "bonusForVictory": 200
     }
   }
 }

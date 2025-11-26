@@ -3,7 +3,7 @@ class_name Player
 
 const SPEED: float = 300.0
 const BULLET_SPEED: float = 500.0
-const SHOOT_COOLDOWN: float = 0.2
+const SHOOT_COOLDOWN: float = 0.15
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var shoot_timer: Timer = $ShootTimer
@@ -16,6 +16,9 @@ func _ready():
 	shoot_timer.timeout.connect(_on_shoot_timer_timeout)
 
 func _physics_process(delta: float):
+	if not Global.game_active:
+		return
+	
 	# Handle movement
 	var direction := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	if direction:
@@ -32,7 +35,7 @@ func _physics_process(delta: float):
 		shoot()
 
 func shoot():
-	if not can_shoot or not Global.game_active:
+	if not can_shoot:
 		return
 	
 	var bullet = bullet_scene.instantiate()
@@ -45,7 +48,3 @@ func shoot():
 
 func _on_shoot_timer_timeout():
 	can_shoot = true
-
-func take_damage():
-	Global.end_game()
-	get_tree().change_scene_to_file("res://scenes/DefeatScreen.tscn")

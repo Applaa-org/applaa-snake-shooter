@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3 uid="uid://snake_seg_def456"]
+
+[ext_resource type="Script" path="res://scripts/SnakeSegment.gd" id="1"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_abc"]
+radius = 8.0
+
+[node name="SnakeSegment" type="Area2D"]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(0, 1, 0, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_abc")

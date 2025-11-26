@@ -8,6 +8,7 @@ const SPEED: float = 500.0
 
 var direction: Vector2 = Vector2.UP
 var lifetime: float = 2.0
+var trail: Array[Vector2] = []
 
 func _ready():
 	body_entered.connect(_on_body_entered)
@@ -15,6 +16,11 @@ func _ready():
 func _process(delta: float):
 	position += direction * SPEED * delta
 	lifetime -= delta
+	
+	# Add to trail
+	trail.append(position)
+	if trail.size() > 5:
+		trail.pop_front()
 	
 	if lifetime <= 0:
 		queue_free()
@@ -24,6 +30,6 @@ func _process(delta: float):
 		queue_free()
 
 func _on_body_entered(body):
-	if body is WormSegment:
+	if body is SnakeSegment:
 		# Let the segment handle the hit
 		pass

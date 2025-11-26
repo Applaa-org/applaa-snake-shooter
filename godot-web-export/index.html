@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake Shooter - Retro Arcade Game</title>
+    <title>Snake Shooter - Enhanced Arcade Game</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         
@@ -61,6 +61,14 @@
         .highScore {
             position: absolute;
             top: 40px;
+            left: 10px;
+            font-size: 16px;
+            text-shadow: 2px 2px 0px rgba(0, 255, 0, 0.3);
+        }
+        
+        .snakes {
+            position: absolute;
+            top: 70px;
             left: 10px;
             font-size: 16px;
             text-shadow: 2px 2px 0px rgba(0, 255, 0, 0.3);
@@ -141,6 +149,7 @@
         <div id="ui">
             <div class="score">SCORE: 0000</div>
             <div class="highScore">HIGH: 0000</div>
+            <div class="snakes">SNAKES: 0/10</div>
             <div id="controls">
                 WASD: Move<br>
                 SPACE/Click: Shoot
@@ -151,7 +160,7 @@
             <div class="menuText">
                 WASD: Move<br>
                 SPACE/Click: Shoot<br>
-                Destroy the worm!
+                Destroy 10 snakes to win!
             </div>
             <button class="menuButton" onclick="startGame()">START GAME</button>
             <button class="menuButton" onclick="closeGame()">CLOSE</button>
@@ -164,6 +173,7 @@
         const menu = document.getElementById('menu');
         const scoreEl = document.querySelector('.score');
         const highScoreEl = document.querySelector('.highScore');
+        const snakesEl = document.querySelector('.snakes');
         
         canvas.width = 800;
         canvas.height = 600;
@@ -171,6 +181,7 @@
         let gameState = 'menu';
         let score = 0;
         let highScore = 0;
+        let snakesDestroyed = 0;
         let gameActive = false;
         
         // Player
@@ -183,37 +194,134 @@
             shootCooldown: 0
         };
         
-        // Worm
-        const worm = {
-            segments: [],
-            direction: { x: 0, y: 1 },
-            moveTimer: 0,
-            moveInterval: 30
-        };
+        // Snakes array
+        const snakes = [];
         
         // Bullets
         const bullets = [];
+        
+        // Explosions
+        const explosions = [];
         
         // Input state
         const keys = {};
         let mousePressed = false;
         
-        // Initialize worm
-        function initWorm() {
-            worm.segments = [];
-            for (let i = 0; i < 8; i++) {
-                worm.segments.push({
-                    x: 400,
-                    y: 100 + i * 25,
-                    isHead: i === 0
-                });
+        // Snake colors
+        const snakeColors = ['#00ff00', '#00ffff', '#ff00ff', '#ffff00', '#ff8800'];
+        
+        // Snake class
+        class Snake {
+            constructor(x, y, length, color) {
+                this.segments = [];
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() < 0.5 ? -1 : 1) * 60;
+                this.vy = 80;
+                this.color = color;
+                this.destroyed = false;
+                
+                for (let i = 0; i < length; i++) {
+                    this.segments.push({
+                        x: x,
+                        y: y + i * 18
+                    });
+                }
+            }
+            
+            update(deltaTime) {
+                if (this.destroyed) return;
+                
+                this.x += this.vx * deltaTime;
+                this.y += this.vy * deltaTime;
+                
+                // Bounce off walls
+                if (this.x < 50 || this.x > 750) {
+                    this.vx *= -1;
+                    this.x = Math.max(50, Math.min(750, this.x));
+                }
+                
+                // Update segments
+                for (let i = 0; i < this.segments.length; i++) {
+                    this.segments[i].x = this.x;
+                    this.segments[i].y = this.y + i * 18;
+                }
+                
+                // Remove if fell off screen
+                if (this.y > 650) {
+                    this.destroyed = true;
+                }
+            }
+            
+            draw() {
+                if (this.destroyed) return;
+                
+                for (let i = 0; i < this.segments.length; i++) {
+                    const segment = this.segments[i];
+                    
+                    ctx.fillStyle = i === 0 ? this.color : this.color + 'cc';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = this.color;
+                    
+                    ctx.beginPath();
+                    ctx.arc(segment.x, segment.y, i === 0 ? 10 : 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = this.color + '88';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            }
+            
+            checkCollision(bullet) {
+                if (this.destroyed) return false;
+                
+                for (let segment of this.segments) {
+                    const dist = Math.sqrt((bullet.x - segment.x) ** 2 + (bullet.y - segment.y) ** 2);
+                    if (dist < 15) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+        
+        // Explosion class
+        class Explosion {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.scale = 1;
+                this.alpha = 1;
+                this.lifetime = 0.5;
+            }
+            
+            update(deltaTime) {
+                this.lifetime -= deltaTime;
+                this.scale += deltaTime * 3;
+                this.alpha = Math.max(0, 1 - this.scale / 3);
+                return this.lifetime > 0;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.color;
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 20 * this.scale, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
             }
         }
         
         // Input handlers
         document.addEventListener('keydown', (e) => {
             keys[e.key.toLowerCase()] = true;
-            e.preventDefault(); // Prevent default browser behavior
+            e.preventDefault();
         });
         
         document.addEventListener('keyup', (e) => {
@@ -242,13 +350,14 @@
                 y: player.y,
                 vx: Math.cos(player.angle) * 10,
                 vy: Math.sin(player.angle) * 10,
-                lifetime: 120
+                lifetime: 120,
+                trail: []
             });
             
-            player.shootCooldown = 12;
+            player.shootCooldown = 8;
         }
         
-        function updatePlayer() {
+        function updatePlayer(deltaTime) {
             if (!gameActive) return;
             
             // Movement
@@ -283,60 +392,19 @@
             }
         }
         
-        function updateWorm() {
+        function updateSnakes(deltaTime) {
             if (!gameActive) return;
             
-            worm.moveTimer++;
-            
-            if (worm.moveTimer >= worm.moveInterval) {
-                worm.moveTimer = 0;
-                
-                // Move head first
-                if (worm.segments.length > 0) {
-                    const head = worm.segments[0];
-                    const oldHeadX = head.x;
-                    const oldHeadY = head.y;
-                    
-                    head.x += worm.direction.x * 25;
-                    head.y += worm.direction.y * 25;
-                    
-                    // Boundaries and direction changes
-                    if (head.x < 50 || head.x > 750) {
-                        worm.direction.x *= -1;
-                        head.x = Math.max(50, Math.min(750, head.x));
-                    }
-                    
-                    if (head.y > 550) {
-                        gameOver();
-                        return;
-                    }
-                    
-                    // Move body segments
-                    for (let i = worm.segments.length - 1; i > 0; i--) {
-                        worm.segments[i].x = worm.segments[i - 1].x;
-                        worm.segments[i].y = worm.segments[i - 1].y;
-                    }
-                    
-                    if (worm.segments.length > 1) {
-                        worm.segments[1].x = oldHeadX;
-                        worm.segments[1].y = oldHeadY;
-                    }
-                    
-                    // Random direction changes
-                    if (Math.random() < 0.02) {
-                        if (worm.direction.y > 0) {
-                            worm.direction.x = Math.random() < 0.5 ? -1 : 1;
-                            worm.direction.y = 0;
-                        } else if (worm.direction.x !== 0) {
-                            worm.direction.x = 0;
-                            worm.direction.y = 1;
-                        }
-                    }
+            // Update existing snakes
+            for (let i = snakes.length - 1; i >= 0; i--) {
+                snakes[i].update(deltaTime);
+                if (snakes[i].destroyed) {
+                    snakes.splice(i, 1);
                 }
             }
         }
         
-        function updateBullets() {
+        function updateBullets(deltaTime) {
             if (!gameActive) return;
             
             for (let i = bullets.length - 1; i >= 0; i--) {
@@ -345,43 +413,60 @@
                 bullet.y += bullet.vy;
                 bullet.lifetime--;
                 
+                // Add to trail
+                bullet.trail.push({x: bullet.x, y: bullet.y});
+                if (bullet.trail.length > 5) {
+                    bullet.trail.shift();
+                }
+                
                 // Remove bullets that are out of bounds or expired
                 if (bullet.x < 0 || bullet.x > 800 || bullet.y < 0 || bullet.y > 600 || bullet.lifetime <= 0) {
                     bullets.splice(i, 1);
                     continue;
                 }
                 
-                // Check collision with worm segments
-                for (let j = worm.segments.length - 1; j >= 0; j--) {
-                    const segment = worm.segments[j];
-                    const dist = Math.sqrt((bullet.x - segment.x) ** 2 + (bullet.y - segment.y) ** 2);
-                    
-                    if (dist < 15) {
-                        // Hit!
+                // Check collision with snakes
+                for (let snake of snakes) {
+                    if (snake.checkCollision(bullet)) {
+                        // Create explosion
+                        for (let segment of snake.segments) {
+                            explosions.push(new Explosion(segment.x, segment.y, snake.color));
+                        }
+                        
+                        // Remove snake and bullet
+                        snake.destroyed = true;
                         bullets.splice(i, 1);
                         
-                        if (j === 0) {
-                            // Hit head - remove all segments
-                            worm.segments = [];
+                        // Update score
+                        score += 50;
+                        snakesDestroyed++;
+                        
+                        // Check victory
+                        if (snakesDestroyed >= 10) {
                             victory();
-                        } else {
-                            // Hit body - remove this and all following segments
-                            const removed = worm.segments.splice(j, worm.segments.length - j);
-                            score += removed.length * 10;
                         }
                         break;
                     }
                 }
             }
-            
-            // Check collision between player and worm
-            for (const segment of worm.segments) {
-                const dist = Math.sqrt((player.x - segment.x) ** 2 + (player.y - segment.y) ** 2);
-                if (dist < 20) {
-                    gameOver();
-                    return;
+        }
+        
+        function updateExplosions(deltaTime) {
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                if (!explosions[i].update(deltaTime)) {
+                    explosions.splice(i, 1);
                 }
             }
+        }
+        
+        function spawnSnake() {
+            if (!gameActive) return;
+            
+            const x = Math.random() * 600 + 100;
+            const length = Math.floor(Math.random() * 5) + 4;
+            const color = snakeColors[Math.floor(Math.random() * snakeColors.length)];
+            
+            snakes.push(new Snake(x, -50, length, color));
         }
         
         function draw() {
@@ -389,7 +474,7 @@
             ctx.fillStyle = '#000800';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Draw grid effect (subtle)
+            // Draw grid effect
             ctx.strokeStyle = 'rgba(0, 255, 0, 0.05)';
             ctx.lineWidth = 1;
             for (let i = 0; i < canvas.width; i += 50) {
@@ -405,32 +490,34 @@
                 ctx.stroke();
             }
             
-            // Draw worm segments
-            for (let i = 0; i < worm.segments.length; i++) {
-                const segment = worm.segments[i];
-                
-                ctx.fillStyle = i === 0 ? '#00ff00' : '#00cc00';
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = i === 0 ? '#00ff00' : '#00cc00';
-                
-                ctx.beginPath();
-                ctx.arc(segment.x, segment.y, i === 0 ? 12 : 10, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Draw segment details
-                ctx.strokeStyle = '#008800';
-                ctx.lineWidth = 2;
-                ctx.stroke();
+            // Draw snakes
+            for (let snake of snakes) {
+                snake.draw();
             }
             
-            // Draw bullets
+            // Draw bullets with trail
             ctx.shadowBlur = 5;
             ctx.shadowColor = '#ffff00';
             for (const bullet of bullets) {
+                // Draw trail
+                for (let i = 0; i < bullet.trail.length; i++) {
+                    const trail = bullet.trail[i];
+                    ctx.fillStyle = `rgba(255, 255, 0, ${0.2 + i * 0.1})`;
+                    ctx.beginPath();
+                    ctx.arc(trail.x, trail.y, 2 + i * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Draw bullet
                 ctx.fillStyle = '#ffff00';
                 ctx.beginPath();
                 ctx.arc(bullet.x, bullet.y, 3, 0, Math.PI * 2);
                 ctx.fill();
+            }
+            
+            // Draw explosions
+            for (let explosion of explosions) {
+                explosion.draw();
             }
             
             // Draw player triangle
@@ -453,20 +540,39 @@
             // Update UI
             scoreEl.textContent = `SCORE: ${score.toString().padStart(4, '0')}`;
             highScoreEl.textContent = `HIGH: ${highScore.toString().padStart(4, '0')}`;
+            snakesEl.textContent = `SNAKES: ${snakesDestroyed}/10`;
         }
         
-        function gameLoop() {
-            updatePlayer();
-            updateWorm();
-            updateBullets();
+        let lastTime = 0;
+        let snakeSpawnTimer = 0;
+        
+        function gameLoop(currentTime) {
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            
+            updatePlayer(deltaTime);
+            updateSnakes(deltaTime);
+            updateBullets(deltaTime);
+            updateExplosions(deltaTime);
+            
+            // Spawn snakes
+            if (gameActive) {
+                snakeSpawnTimer += deltaTime;
+                if (snakeSpawnTimer >= 2.0) {
+                    snakeSpawnTimer = 0;
+                    spawnSnake();
+                }
+            }
+            
             draw();
             requestAnimationFrame(gameLoop);
         }
         
         function startGame() {
-            console.log("Starting game...");
+            console.log("Starting enhanced game...");
             gameState = 'playing';
             score = 0;
+            snakesDestroyed = 0;
             gameActive = true;
             
             // Reset player
@@ -475,24 +581,22 @@
             player.angle = -Math.PI / 2;
             player.shootCooldown = 0;
             
-            // Reset worm
-            initWorm();
-            worm.direction = { x: 0, y: 1 };
-            worm.moveTimer = 0;
-            
-            // Clear bullets
+            // Clear arrays
+            snakes.length = 0;
             bullets.length = 0;
+            explosions.length = 0;
             
             // Clear keys
             for (let key in keys) {
                 keys[key] = false;
             }
             mousePressed = false;
+            snakeSpawnTimer = 0;
             
             // Hide menu
             menu.classList.add('hidden');
             
-            console.log("Game started successfully!");
+            console.log("Enhanced game started successfully!");
         }
         
         function gameOver() {
@@ -502,12 +606,12 @@
                 highScore = score;
             }
             
-            // Show defeat menu
             menu.innerHTML = `
                 <div class="menuTitle" style="color: #ff0000;">GAME OVER</div>
                 <div class="menuText">
                     FINAL SCORE: ${score}<br>
-                    HIGH SCORE: ${highScore}
+                    HIGH SCORE: ${highScore}<br>
+                    SNAKES DESTROYED: ${snakesDestroyed}
                 </div>
                 <button class="menuButton" onclick="startGame()">RESTART</button>
                 <button class="menuButton" onclick="showMainMenu()">MAIN MENU</button>
@@ -519,17 +623,17 @@
         function victory() {
             console.log("Victory!");
             gameActive = false;
-            score += 100; // Bonus for destroying worm
+            score += 200; // Victory bonus
             if (score > highScore) {
                 highScore = score;
             }
             
-            // Show victory menu
             menu.innerHTML = `
                 <div class="menuTitle" style="color: #00ff00;">VICTORY!</div>
                 <div class="menuText">
                     FINAL SCORE: ${score}<br>
-                    HIGH SCORE: ${highScore}
+                    HIGH SCORE: ${highScore}<br>
+                    SNAKES DESTROYED: ${snakesDestroyed}
                 </div>
                 <button class="menuButton" onclick="startGame()">RESTART</button>
                 <button class="menuButton" onclick="showMainMenu()">MAIN MENU</button>
@@ -548,7 +652,7 @@
                 <div class="menuText">
                     WASD: Move<br>
                     SPACE/Click: Shoot<br>
-                    Destroy the worm!
+                    Destroy 10 snakes to win!
                 </div>
                 <button class="menuButton" onclick="startGame()">START GAME</button>
                 <button class="menuButton" onclick="closeGame()">CLOSE</button>
@@ -559,16 +663,14 @@
         function closeGame() {
             if (window.confirm('Are you sure you want to close the game?')) {
                 window.close();
-                // Fallback for browsers that can't close the window
                 window.location.href = 'about:blank';
             }
         }
         
         // Initialize and start game loop
-        console.log("Initializing game...");
-        initWorm();
-        gameLoop();
-        console.log("Game initialized and running!");
+        console.log("Initializing enhanced game...");
+        gameLoop(0);
+        console.log("Enhanced game initialized and running!");
     </script>
 </body>
 </html>
