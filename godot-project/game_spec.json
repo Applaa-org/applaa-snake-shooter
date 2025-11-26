@@ -1,0 +1,51 @@
+{
+  "game": {
+    "name": "Snake Shooter",
+    "type": "2D",
+    "genre": "arcade shooter",
+    "description": "A Centipede-inspired arcade game where you shoot a segmented worm enemy"
+  },
+  "settings": {
+    "window": {"width": 800, "height": 600},
+    "physics": {"gravity": 0}
+  },
+  "player": {
+    "name": "Player",
+    "health": 1,
+    "speed": 300,
+    "abilities": ["move", "shoot"]
+  },
+  "entities": {
+    "enemies": [
+      {
+        "name": "Worm",
+        "health": 8,
+        "speed": 100,
+        "damage": 1,
+        "behavior": "segmented_movement"
+      }
+    ],
+    "projectiles": [
+      {
+        "name": "Bullet",
+        "speed": 500,
+        "damage": 1
+      }
+    ]
+  },
+  "levels": [
+    {
+      "name": "Main Arena",
+      "background": "dark",
+      "obstacles": []
+    }
+  ],
+  "logic": {
+    "winCondition": "destroy_worm",
+    "loseCondition": "worm_reaches_bottom_or_hits_player",
+    "scoring": {
+      "pointsPerSegment": 10,
+      "bonusForWorm": 100
+    }
+  }
+}
