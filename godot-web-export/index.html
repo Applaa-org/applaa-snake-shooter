@@ -194,8 +194,9 @@
         // Bullets
         const bullets = [];
         
-        // Input
+        // Input state
         const keys = {};
+        let mousePressed = false;
         
         // Initialize worm
         function initWorm() {
@@ -212,20 +213,29 @@
         // Input handlers
         document.addEventListener('keydown', (e) => {
             keys[e.key.toLowerCase()] = true;
+            e.preventDefault(); // Prevent default browser behavior
         });
         
         document.addEventListener('keyup', (e) => {
             keys[e.key.toLowerCase()] = false;
+            e.preventDefault();
         });
         
-        canvas.addEventListener('click', () => {
+        canvas.addEventListener('mousedown', (e) => {
+            mousePressed = true;
             if (gameActive) {
                 shoot();
             }
+            e.preventDefault();
+        });
+        
+        canvas.addEventListener('mouseup', (e) => {
+            mousePressed = false;
+            e.preventDefault();
         });
         
         function shoot() {
-            if (player.shootCooldown > 0) return;
+            if (player.shootCooldown > 0 || !gameActive) return;
             
             bullets.push({
                 x: player.x,
@@ -239,13 +249,15 @@
         }
         
         function updatePlayer() {
+            if (!gameActive) return;
+            
             // Movement
             let dx = 0, dy = 0;
             
-            if (keys['a']) dx = -1;
-            if (keys['d']) dx = 1;
-            if (keys['w']) dy = -1;
-            if (keys['s']) dy = 1;
+            if (keys['a'] || keys['arrowleft']) dx = -1;
+            if (keys['d'] || keys['arrowright']) dx = 1;
+            if (keys['w'] || keys['arrowup']) dy = -1;
+            if (keys['s'] || keys['arrowdown']) dy = 1;
             
             if (dx !== 0 || dy !== 0) {
                 const len = Math.sqrt(dx * dx + dy * dy);
@@ -262,7 +274,7 @@
             player.y = Math.max(20, Math.min(580, player.y));
             
             // Shooting
-            if (keys[' '] || keys['space']) {
+            if (keys[' '] || keys['space'] || mousePressed) {
                 shoot();
             }
             
@@ -272,9 +284,8 @@
         }
         
         function updateWorm() {
-           # ... continuing from the index.html file
-
-function updateWorm() {
+            if (!gameActive) return;
+            
             worm.moveTimer++;
             
             if (worm.moveTimer >= worm.moveInterval) {
@@ -326,6 +337,8 @@ function updateWorm() {
         }
         
         function updateBullets() {
+            if (!gameActive) return;
+            
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const bullet = bullets[i];
                 bullet.x += bullet.vx;
@@ -443,17 +456,15 @@ function updateWorm() {
         }
         
         function gameLoop() {
-            if (gameActive) {
-                updatePlayer();
-                updateWorm();
-                updateBullets();
-            }
-            
+            updatePlayer();
+            updateWorm();
+            updateBullets();
             draw();
             requestAnimationFrame(gameLoop);
         }
         
         function startGame() {
+            console.log("Starting game...");
             gameState = 'playing';
             score = 0;
             gameActive = true;
@@ -462,18 +473,30 @@ function updateWorm() {
             player.x = 400;
             player.y = 500;
             player.angle = -Math.PI / 2;
+            player.shootCooldown = 0;
             
             // Reset worm
             initWorm();
+            worm.direction = { x: 0, y: 1 };
+            worm.moveTimer = 0;
             
             // Clear bullets
             bullets.length = 0;
             
+            // Clear keys
+            for (let key in keys) {
+                keys[key] = false;
+            }
+            mousePressed = false;
+            
             // Hide menu
             menu.classList.add('hidden');
+            
+            console.log("Game started successfully!");
         }
         
         function gameOver() {
+            console.log("Game over!");
             gameActive = false;
             if (score > highScore) {
                 highScore = score;
@@ -494,6 +517,7 @@ function updateWorm() {
         }
         
         function victory() {
+            console.log("Victory!");
             gameActive = false;
             score += 100; // Bonus for destroying worm
             if (score > highScore) {
@@ -515,6 +539,7 @@ function updateWorm() {
         }
         
         function showMainMenu() {
+            console.log("Returning to main menu...");
             gameState = 'menu';
             gameActive = false;
             
@@ -540,8 +565,10 @@ function updateWorm() {
         }
         
         // Initialize and start game loop
+        console.log("Initializing game...");
         initWorm();
         gameLoop();
+        console.log("Game initialized and running!");
     </script>
 </body>
 </html>
